@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard.playground.fredericofischer.ch
+  namespace: cert-manager
+  annotations:
+    replicator.v1.mittwald.de/replicate-to: "gitlab, keycloak"
+spec:
+  secretName: wildcard.playground.fredericofischer.ch
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+  dnsNames:
+    - '*.playground.fredericofischer.ch'
+    - 'playground.fredericofischer.ch'

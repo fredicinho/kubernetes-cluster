@@ -1,0 +1,13 @@
+controller:
+  config:
+    use-proxy-protocol: "true"
+  replicaCount: 3
+  service:
+    type: LoadBalancer
+    annotations:
+      load-balancer.hetzner.cloud/name: nginx-controller-new
+      load-balancer.hetzner.cloud/location: nbg1
+      load-balancer.hetzner.cloud/use-private-ip: true
+      load-balancer.hetzner.cloud/algorithm-type: least_connections
+      load-balancer.hetzner.cloud/uses-proxyprotocol: true
+      load-balancer.hetzner.cloud/hostname: fredericofischer.ch

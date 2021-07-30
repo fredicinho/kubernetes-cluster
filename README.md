@@ -49,8 +49,10 @@ Apply KubeOne-Configs to Terraform-Configuration and install the Cluster
 ```
 kubeone apply --manifest kubeone.yaml --tfjson output.json
 ```
-Move the created kubeconfig-File into your local .kube-Folder!
-
+Move the created kubeconfig-File into your local .kube-Folder or export the configs:
+````shell
+export KUBECONFIG=PATH_TO_REPO/hetzner/cluster/kubernetes-cluster-kubeconfig
+````
 
 Tip: Create folder ".kube/configs" and put all config-files there. Export the following KUBECONFIG to handle all Kubernetes-Clusters at once:
 ````

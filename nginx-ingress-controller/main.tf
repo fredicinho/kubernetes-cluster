@@ -12,15 +12,9 @@ resource "helm_release" "ingress_controller" {
   create_namespace = "true"
   namespace        = "ingress-nginx"
 
-  set {
-    name  = "controller.service.type"
-    value = "ClusterIP"
-  }
-
-  set {
-    name  = "controller.hostNetwork"
-    value = "true"
-  }
+  values = [
+    "${file("values.yaml")}"
+  ]
 }
 
 

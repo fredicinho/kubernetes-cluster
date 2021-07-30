@@ -1,7 +1,14 @@
 # Kubernetes Cluster
 This is a small Guide which shows how to create a Kubernetes Cluster.
 
-## Install Kubernetes on Hetzner Cloud with Terraform and KubeOne
+# Table of Contents
+1. [Install Kubernetes](#install-kub)
+    1. [Install Kubernetes on Hetzner Cloud using Terraform and KubeOne](#install-kub-ter)
+    2. [Install Kubernetes on a VM / Bare Metal manually (using Ubuntu)](#install-kub-man)
+
+
+## Install Kubernetes <a name="install-kub"></a>
+### Install Kubernetes on Hetzner Cloud using Terraform and KubeOne  <a name="install-kub-ter"></a>
 Install Kubeone
 ````
 curl -sfL get.kubeone.io | sh
@@ -50,13 +57,13 @@ Tip: Create folder ".kube/configs" and put all config-files there. Export the fo
 KUBECONFIG="$(find ~/.kube/configs/ -type f -exec printf '%s:' '{}' +)"
 ````
 
-## Install Kubernetes on a VM / Bare Metal manually (using Ubuntu)
-### Server on Hetzner
+### Install Kubernetes on a VM / Bare Metal manually (using Ubuntu) <a name="install-kub-man"></a>
+#### Server on Hetzner
 I prepared a terraform-Template to create an Ubuntu Server on Hetzner, but you can also use an own Server.
 ````shell
 cd hetzner/server && terraform init && terraform plan && terraform apply -auto-approve
 ````
-### Install Docker
+#### Install Docker
 ````shell
 mkdir /etc/docker
 ````
@@ -91,7 +98,7 @@ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubun
 sudo apt update && sudo apt install docker-ce -y
 ````
 
-### Install Kubernetes components
+#### Install Kubernetes components
 ```shell
 sudo apt-get update && sudo apt-get install -y apt-transport-https && curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 ```
@@ -102,7 +109,7 @@ echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/a
 sudo apt install -y kubeadm  kubelet kubernetes-cni
 ```
 
-### Turn off Swap
+#### Turn off Swap
 ```shell
 sudo swapoff -a
 ```
@@ -111,7 +118,7 @@ sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 ```
 * Check following Issue to understand why: https://github.com/kubernetes/kubernetes/issues/53533
 
-### Create Kubernetes Cluster
+#### Create Kubernetes Cluster
 ```shell
 sudo kubeadm init --pod-network-cidr=10.17.0.0/16 --service-cidr=10.18.0.0/24 --ignore-preflight-errors=NumCPU
 ```
@@ -155,7 +162,7 @@ Change the context
 kubectl config 
 ````
 
-### Apply Networking
+#### Apply Networking
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
@@ -165,13 +172,13 @@ kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documen
 * Check documentation for networking in Kubernetes: https://kubernetes.io/docs/concepts/cluster-administration/networking/
 * I use flannel here: https://github.com/flannel-io/flannel
 
-### Make Master Node as Worker (Optional)
+#### Make Master Node as Worker (Optional)
 ````shell
 kubectl taint nodes --all node-role.kubernetes.io/master-
 ````
 * Just make this, if you want to use Kubernetes on a single server. Else you have to add worker nodes to run Pods!
 
-### Add Worker Node to Cluster (Optional)
+#### Add Worker Node to Cluster (Optional)
 Get Token of your Master Node
 ````shell
 kubeadm token list
@@ -194,18 +201,53 @@ Use Kubeadm join command to join your worker to the cluster
 kubeadm join IP_OF_API:PORT_OF_API --token YOUR_TOKEN --discovery-token-ca-cert-hash YOUR_CERT_HASH
 ````
 
-## NGINX Ingress Controller
-Check this blog to understand its Architecture/Purpose:
-* https://docs-1-12--nginx-kubernetes-ingress.netlify.app/nginx-ingress-controller/intro/how-nginx-ingress-controller-works/
-### Install manually
+## LoadBalancer
+### Install with MetalLB and NGINX Ingress Controller
+**TODO: Couldn't make it work... Have to check how to configure Networking..**
 
-### Install with Terraform and Helm Chart
+Check this blog to understand the Architecture/Purpose of an Ingress Controller:
+* https://docs-1-12--nginx-kubernetes-ingress.netlify.app/nginx-ingress-controller/intro/how-nginx-ingress-controller-works/
+
+While Cloud-Providers like AWS, GKE etc. delivers LoadBalancers out of the box, we have to integrate this ourselves.
+Check following Article to get familiar with its concept:
+* https://blog.dbi-services.com/setup-an-nginx-ingress-controller-on-kubernetes/
+
+I'm using this tutorial to create a LoadBalancer using MetalLB and an Ingress Controller using NGINX.
+
+First create a new Namespace:
+````shell
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/namespace.yaml
+````
+
+Install all required Manifests:
+````shell
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/metallb.yaml
+````
+
+You need to create ConfigMap containing the IP-Range which metallb should use for mapping them to the exposed services.
+We will just use the Server-IP which is exposed and map all services to it.
+Therefore, you have to set the Server-IP in the metallb/metallb-config.yaml-File and then apply it:
+````shell
+kubectl apply -f metallb/metallb-config.yaml
+````
+
+Now we can create the NGINX Ingress Controller:
+````shell
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/baremetal/deploy.yaml
+````
+
+TODO: Couldn't make it work...
+
+### Install with Hetzners LoadBalancer and NGINX Ingress Controller
+
 
 ## Cert-Manager and Wildcard Certificate
-This tutorial explains how you install and configure the CertManager with the usage of a Wildcard-Certificate. I use Cloudflare as my DNS-Registrar. Therefore, I work with its API-Token. I assume that you already have a Domainname registered over Cloudflare.
+This tutorial explains how you install and configure the CertManager with the usage of a Wildcard-Certificate. I use Cloudflare as my DNS-Registrar. Therefore, I work with its API-Token. I assume that you already have a Domainname registered over Cloudflare. Else, buy a domain, add it into Cloudflare and add an A-Record entry pointing _***.yourdomain.org**_ to your Server-IP:
+* https://support.cloudflare.com/hc/en-us/articles/201720164-Creating-a-Cloudflare-account-and-adding-a-website
+* https://support.cloudflare.com/hc/en-us/articles/360019093151-Managing-DNS-records-in-Cloudflare
+
 To get more information about the Cert-Manager: 
 * https://banzaicloud.com/blog/cert-management-on-kubernetes/
-
 
 ### Install manually
 Apply following yaml-File. It includes all resources (CustomResourceDefinitions, cert-manager, namespace and webhook component).
@@ -255,6 +297,10 @@ metadata:
 The Replicator replicates this certificate now to the mentioned namespaces "gitlab" and "keycloak", which we will create and work with later!
 
 ### Install with Terraform and Helm Chart
+
+## Rancher
+
+## ArgoCD
 
 ## Keycloak
 

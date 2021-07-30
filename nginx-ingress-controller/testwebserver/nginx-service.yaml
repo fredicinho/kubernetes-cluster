@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  annotations:
+    metallb.universe.tf/allow-shared-ip: my-shared-ip
+spec:
+  selector:
+    app: nginx
+  type: LoadBalancer
+  loadBalancerIP: 65.21.240.29
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
